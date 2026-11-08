@@ -174,9 +174,12 @@
   .lst-item.lv-yellow::before{background:var(--yellow);}
   .lst-item.lv-green::before{background:var(--green);}
   .lst-item .r1{display:flex;align-items:center;gap:7px;}
-  .lst-item .nm{flex:1;font-size:13px;font-weight:600;color:#155a9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .lst-item .st{font-size:11px;font-weight:700;white-space:nowrap;}
+  .lst-item .nm{flex:0 1 auto;min-width:0;font-size:13px;font-weight:600;color:#155a9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lst-item .st{flex:0 0 auto;margin-left:auto;font-size:11px;font-weight:700;white-space:nowrap;}
   .st.red{color:var(--red);} .st.orange{color:var(--orange);} .st.yellow{color:#b58a06;} .st.green{color:var(--green);}
+  /* AI 自动研判生成的工单标识（跟在乡镇名称后） */
+  .lst-item .ai-flag{flex:0 0 auto;font-size:10px;font-weight:700;color:#5d4891;background:#f1ecff;
+    border:1px solid #cfc2f0;border-radius:3px;padding:0 4px;line-height:15px;white-space:nowrap;letter-spacing:.2px;}
   .lst-item .r2{display:flex;gap:8px;margin-top:5px;font-size:11px;color:var(--text-dim);}
   .lst-item .r2 .tm{margin-right:auto;}
   .chip{padding:1px 6px;border:1px solid #a8d0ee;border-radius:2px;color:#1266ad;background:#f4faff;white-space:nowrap;}
@@ -1490,7 +1493,7 @@
       </div>`).join('') || '<div class="lg-tip">暂无待研判预警</div>';
     $('#orderList').innerHTML = orders.slice(0,5).map(o=>`
       <div class="lst-item lv-${o.level}" data-kind="order" data-id="${o.id}">
-        <div class="r1"><span class="nm">${o.short} · ${o.town}</span><span class="st ${o.over?'red':o.state>=3?'green':o.level==='yellow'?'yellow':'orange'}">${o.archived?'已归档':STATES[o.state]}</span></div>
+        <div class="r1"><span class="nm">${o.short} · ${o.town}</span>${o.ai?'<span class="ai-flag" title="该工单由 AI 自动研判生成并自动派发">【AI研判】</span>':''}<span class="st ${o.over?'red':o.state>=3?'green':o.level==='yellow'?'yellow':'orange'}">${o.archived?'已归档':STATES[o.state]}</span></div>
         <div class="r2"><span class="tm">${o.id.slice(-4)} · ${o.unit}</span><span class="chip">${o.over?'超时':'在办'}</span></div>
       </div>`).join('');
     $('#kJudge').textContent = alerts.filter(a=>a.status==='pending').length;
