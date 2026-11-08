@@ -299,6 +299,12 @@
   .lv-btns .lv-orange:has(input:checked){background:linear-gradient(180deg,#f5a53b,#e07414);border-color:#e07414;}
   .lv-btns .lv-yellow:has(input:checked){background:linear-gradient(180deg,#f6cd4a,#d9a406);border-color:#d9a406;color:#4a3800;}
   .btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+  /* 首页资源 / 设备档案：返回按钮吸底（随抽屉滚动始终贴底） */
+  .ov-sticky{position:sticky;bottom:0;z-index:3;display:flex;gap:7px;margin:12px -14px -22px;padding:9px 14px 10px;
+    background:#fff;border-top:1px solid #cfe5f6;
+    box-shadow:0 -5px 12px rgba(22,88,150,.08);}
+  .ov-sticky::after{content:"";position:absolute;left:0;right:0;bottom:-26px;height:26px;background:#fff;}
+  .ov-sticky .btn{margin:0;}
   .btn{flex:1;min-width:96px;text-align:center;padding:8px 6px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #b9d9f2;background:#fff;color:#1266ad;transition:all .15s;}
   .btn:hover{box-shadow:0 2px 8px rgba(40,120,190,.2);}
   .btn.primary{background:linear-gradient(180deg,#3d9be0,#1266ad);border-color:#1266ad;color:#fff;}
@@ -1396,7 +1402,7 @@
     const d=e.target.closest('.ld'); if(!d)return;
     e.preventDefault(); e.stopPropagation();
     openAsset(d.dataset.cat,'list');
-    toast('已在右侧展开点位清单 · 点击任一行查看详情');
+    toast('已在右侧展开点位清单');
   });
   function applyZoom(){
     const w=1000/zoom,h=640/zoom;
@@ -1481,7 +1487,7 @@
   $('.map-head .cnts').addEventListener('click',e=>{
     const c=e.target.closest('.mc.clickable'); if(!c)return;
     openAsset(c.dataset.cat,'list');
-    toast('已在右侧展开点位清单 · 点击任一行查看详情');
+    toast('已在右侧展开点位清单');
   });
 
   /* ================= 左栏清单 ================= */
@@ -1694,6 +1700,7 @@
 
   /* ---------- 研判处理 ---------- */
   function renderJudge(a){
+    $('#dwKicker').style.display=''; $('#dwSub').style.display='';
     $('#dwKicker').textContent='研判处理 · ONE MAP';
     $('#dwTitle').textContent=a.id;
     $('#dwSub').textContent=`${a.town} ${a.place} · ${a.time} 入库 · 已等待 ${a.wait}`;
@@ -1734,6 +1741,7 @@
 
   /* ---------- 工单处理 ---------- */
   function renderOrder(o){
+    $('#dwKicker').style.display=''; $('#dwSub').style.display='';
     $('#dwKicker').textContent='工单处理 · ONE MAP';
     $('#dwTitle').textContent=o.id;
     $('#dwSub').textContent=`${o.town}${o.place} · 源告警 ${o.src} · ${o.time} 生成`;
@@ -1796,7 +1804,7 @@
      不改研判 / 工单流程；新交互不附加原型标注。 */
   let asset = {view:null,kind:null,id:null};
   const OV_CAT = {
-    resource:{nm:'应急资源',kicker:'应急资源详情 · ONE MAP',tab:1,tabNm:'应急资源'},
+    resource:{nm:'应急资源',kicker:'',tab:1,tabNm:'应急资源'},
     device:{nm:'感知设备',kicker:'感知设备详情 · ONE MAP',tab:2,tabNm:'运行监测'}
   };
   function ovRes(id){return RES_POINTS.find(p=>p.id===id);}
@@ -1827,8 +1835,10 @@
   function renderAsset(){
     const v = asset.view==='list'?ovList():ovItem();
     $('#dwKicker').textContent=v.kicker;
+    $('#dwKicker').style.display=v.kicker?'':'none';
     $('#dwTitle').textContent=v.title;
     $('#dwSub').textContent=v.sub;
+    $('#dwSub').style.display=v.sub?'':'none';
     const r=$('#dwRole');
     r.className='dw-role';
     r.innerHTML='';
@@ -1852,15 +1862,15 @@
     const body =
       ovSec('① 点位概览','首图示意',ovKv([
         ['类别',c.nm],['首图点位',`${rows.length} 处`],
-        ['全域台账',isRes?'13 处资源点位 / 10 乡镇 · 见「应急资源」':'28 台设备 / 在线 27 台 · 见「运行监测」'],
+        ['全域台账',isRes?'13 处资源点位 / 10 乡镇':'28 台设备 / 在线 27 台 · 见「运行监测」'],
         ['点位构成',stat.join(' · ')],['数据口径','示意数据','blu']
       ]))
-      + ovSec('② 点位清单','点击任一行查看详情',ovTbl(
+      + ovSec('② 点位清单','',ovTbl(
           isRes?['点位名称','类型','状态','规模']:['设备名称','类型','状态','所属乡镇'], rows));
     return {
       kicker:c.kicker,
       title:`${c.nm} · 点位清单`,
-      sub:isRes?'首图 7 处示意点位 · 全域台账见「应急资源」':'首图 4 处示意点位（在线 3 / 离线 1）· 全域台账见「运行监测」',
+      sub:isRes?'':'首图 4 处示意点位（在线 3 / 离线 1）· 全域台账见「运行监测」',
       body:body
     };
   }
@@ -1871,13 +1881,13 @@
     if(!p)return {kicker:c.kicker,title:'暂无档案',sub:'—',body:ovSec('提示','','<div class="lg-tip">该点位暂无示意档案。</div>')};
     const name=isRes?p.nm:(o?o.nm:p.nm);
     const body = isRes
-      ? ovSec('① 点位基础档案','与「应急资源」同源',ovKv([
+      ? ovSec('① 点位基础档案','',ovKv([
           ['点位编号',p.id,'blu'],['点位名称',p.nm],['资源类型',p.type],['所属乡镇',p.townNm],
           ['规模 / 数量',p.qty],['当前状态',p.status],['具体位置',p.addr],
           ['管理人',p.keeper],['联系电话',p.tel],['上次盘点',p.check],
           ['首图关联',`距当前选中对象约 ${o?o.dist:'—'} · 按距离排序联动`],['数据时点',stampText()]
         ]))
-        + ovSec('② 保障能力 / 覆盖范围','示意说明',`<div class="lg-tip" style="font-size:11.5px">${p.cap}</div>`)
+        + ovSec('② 保障能力 / 覆盖范围','',`<div class="lg-tip" style="font-size:11.5px">${p.cap}</div>`)
         + ovSec('③ 物资 / 配置明细','6 类',
             `<table class="tb"><thead><tr><th>类别</th><th>数量</th></tr></thead><tbody>${RES_CATS.map((n,i)=>`<tr><td>${n}</td><td>${(p.items||[])[i]||'—'}</td></tr>`).join('')}</tbody></table>`)
         + ovSec('④ 近期调用 / 维护记录','近 30 日',ovLogs(p.logs))
@@ -1889,8 +1899,8 @@
         ]))
         + ovSec('② 监测能力','示意说明',`<div class="lg-tip" style="font-size:11.5px">${p.cap}</div>`)
         + ovSec('③ 运行 / 巡检记录','近 30 日',ovLogs(p.logs));
-    const tail = `<div class="rule-note blue">档案取自现有示意台账，坐标为示意值；本页只读、不产生业务动作，更多信息见「${c.tabNm}」。</div>`
-      + `<div class="btn-row"><div class="btn ghost" data-oact="backList">↩ 返回点位清单</div></div>`;
+    const tail = (isRes?'':`<div class="rule-note blue">档案取自现有示意台账，坐标为示意值；本页只读、不产生业务动作，更多信息见「${c.tabNm}」。</div>`)
+      + `<div class="ov-sticky"><div class="btn ghost" data-oact="backList">返回</div></div>`;
     return {
       kicker:c.kicker,
       title:name,
