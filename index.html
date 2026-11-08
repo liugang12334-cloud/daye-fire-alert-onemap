@@ -71,6 +71,18 @@
         与「增加协助人员」两个处置动作，各自带独立表单弹窗，提交结果写入工单信息与流转留痕；
         其余状态动作、角色权限与状态流转不变。
      ③ 去除工单抽屉内关于原型态数与原系统态数对比的说明文字，流程条提示与口径说明同步精简。
+
+   【11-08 第 7 轮修订（本轮用户指令 · 黄色预警 AI 自动研判）】
+     ① 黄色预警：由 AI 自动完成研判并直接执行，不再进入人工待办——
+        结论为「需派发工单」→ 自动生成工单·黄色，派发属地乡镇值班室（=乡镇办公室），
+        并以短信 + 站内消息同步通知应急指挥室（仅知会，不需处理、不复核）；
+        结论为「无需处理」→ 系统直接归档，不计入工单。
+        黄色预警详情页不再提供人工研判 / 判定误报 / 转乡镇核查按钮。
+     ② 橙色 / 红色预警：沿用现有流程，AI 只给研判建议，由人工研判确认后生效。
+     ③ 可追溯：AI 研判的模型、触发方式、耗时、置信度、分步过程、结论与自动执行结果，
+        同时写入工单「流转留痕」与「AI 自动研判记录」区块，并汇总到页头「🤖 AI 研判日志」
+        （含派发与归档两类结果），支持从日志反查源告警详情。
+     ④ 实现范围：原型层规则与呈现，模型推理过程为示意；数据接入、模型服务与研判结果表不在本版范围。
 -->
 <head>
 <meta charset="UTF-8">
@@ -502,6 +514,28 @@
   .dw-sec>.sh .sh-btn:hover{filter:brightness(1.12);}
   .btn-row.four .btn{flex:1 1 calc(50% - 4px);min-width:0;}
   #dspMask .modal{display:flex;flex-direction:column;width:900px;max-height:86vh;overflow:hidden;}
+  /* ===== 第 7 轮：黄色预警 AI 自动研判（日志弹窗 / 记录区块 / 结论卡） ===== */
+  #aiMask .modal{display:flex;flex-direction:column;width:760px;max-width:94vw;max-height:86vh;overflow:hidden;}
+  #aiMask .mh{flex:0 0 auto;}
+  #aiMask .mb{flex:1;min-height:0;overflow-y:auto;}
+  #aiMask .mf{flex:0 0 auto;}
+  .ai-card{border:1px solid #d9c9f0;border-radius:6px;margin:0 0 12px;overflow:hidden;background:#fff;}
+  .ai-card>.ah{display:flex;align-items:center;gap:8px;padding:8px 11px;background:linear-gradient(90deg,#f5f0ff,#fff);border-bottom:1px solid #e8ddf8;font-size:12.5px;font-weight:700;color:#5d3fa0;}
+  .ai-card>.ah .lvtag{margin-left:auto;font-weight:400;font-size:11px;color:#6b7280;}
+  .ai-card>.ab{padding:10px 12px;}
+  .ai-concl{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:5px;background:#f7f2ff;border:1px solid #e0d2f5;font-size:12px;color:#5d4891;margin:0 0 9px;}
+  .ai-concl b{font-size:12.5px;color:#6b3fc0;}
+  .ai-concl .ok{margin-left:auto;padding:2px 9px;border-radius:10px;background:#eef8f1;border:1px solid #a8dfc4;color:#0d7a4e;font-size:11px;font-weight:700;}
+  .ai-concl .arch{margin-left:auto;padding:2px 9px;border-radius:10px;background:#f2f4f6;border:1px solid #cfd8df;color:#5b6b78;font-size:11px;font-weight:700;}
+  .ai-step{position:relative;padding:0 0 8px 15px;font-size:11.5px;line-height:1.6;color:var(--text);}
+  .ai-step::before{content:"";position:absolute;left:0;top:5px;width:6px;height:6px;border-radius:50%;background:#8f6ad6;}
+  .ai-step .tm{color:#7b61c9;margin-right:5px;font-weight:600;}
+  .ai-sub{font-size:11px;color:#5b6b78;line-height:1.6;margin:2px 0 6px;}
+  .nt-row{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.6;padding:3px 0;border-bottom:1px dashed #e6eef6;}
+  .nt-row:last-child{border-bottom:none;}
+  .nt-row .ch{flex:0 0 58px;font-weight:700;color:#1266ad;}
+  .nt-row .to{flex:1;}
+  .nt-row .st{flex:0 0 auto;color:#0d7a4e;}
   #dspMask .mh{flex:0 0 auto;}
   #dspMask .mb{flex:1;min-height:0;overflow-y:auto;padding:13px 16px;}
   #dspMask .mf{flex:0 0 auto;justify-content:flex-end;}
@@ -562,6 +596,7 @@
     <div class="head-right">
       <div class="datetime"><span>📍 大冶</span><span id="dt">--</span></div>
       <div class="hr-line">
+        <span class="hd-btn" id="aiOpen" title="查看黄色预警 AI 自动研判记录（研判过程与最终结果）">🤖 AI 研判日志</span>
         <span class="hd-btn" id="calOpen">ⓘ 口径说明</span>
         <span class="hd-btn role" id="roleSel" title="点击切换指挥长 / 乡镇值班室角色">👤 当前角色：指挥长</span>
         <span>🔔 我的消息 <em>3</em></span>
@@ -1061,6 +1096,13 @@
       <div class="mf"><div class="btn ghost" id="cfCancel">取消</div><div class="btn primary" id="cfOk">确认</div></div>
     </div>
   </div>
+  <div class="mask" id="aiMask">
+    <div class="modal">
+      <div class="mh">🤖 AI 自动研判日志 · 黄色预警免人工<span id="aiX">×</span></div>
+      <div class="mb" id="aiBody"></div>
+      <div class="mf"><div class="btn primary" id="aiOk">关闭</div></div>
+    </div>
+  </div>
   <div class="mask" id="dspMask">
     <div class="modal">
       <div class="mh">工单调度<span id="dspX">×</span></div>
@@ -1105,8 +1147,9 @@
         <ul>
           <li>两套调度：指挥中心调度（常规工单）与基层一键调度（失控 / 专业处置需求，按等级触发）。</li>
           <li>黄色工单：误报确认权下放乡镇值班室，指挥中心不介入处置。</li>
-          <li>预警研判阶段的「判定误报 · 归档」由当前角色行使；黄色工单生成后的误报确认权仍归乡镇值班室。</li>
-          <li>角色权限：指挥长与乡镇值班室按工单状态分工；AI 采用「辅助 + 人工确认」，可回退纯人工。</li>
+          <li><b>黄色预警：AI 自动研判并自动执行</b>——结论为需派发则生成工单·黄色、派发属地乡镇值班室（乡镇办公室），并以短信 + 站内消息知会应急指挥室（不需处理）；结论为无需处理则由系统直接归档。全程留痕，见「AI 研判日志」。</li>
+          <li><b>橙色 / 红色预警：AI 只出研判建议，由人工研判确认后生效</b>；预警研判阶段的「判定误报 · 归档」仅适用于橙 / 红预警。</li>
+          <li>角色权限：指挥长与乡镇值班室按工单状态分工；黄色工单误报确认权归乡镇值班室；AI 可回退纯人工，业务流不中断。</li>
           <li>弹窗固定在地图右侧，可收窄、可收回；告警点联动展示周边救援物资。</li>
         </ul>
         <h4>数据口径</h4>
@@ -1183,8 +1226,13 @@
     {id:'AL-20261107-0018', short:'沼山村', town:'保安镇', place:'沼山村野外用火点', coord:[352,306],
      level:'yellow', src:'群众上报 12345', time:'09:02', wait:'00:42', history:0,
      sensitive:'农田边缘 · 距林地 900m', weather:'东北风 2.1 级 · 湿度 51%',
-     dup:0, ai:'低置信度，疑似农事用火；建议人工确认后研判，必要时转乡镇核查。', status:'pending',
-     logs:[{t:'09:02',x:'12345 群众上报，生成黄色告警',hot:false}]}
+     dup:0, ai:'农事用火特征明显、风险可控：判定需处置 → 自动生成工单·黄色并派发保安镇值班室。', status:'pending',
+     logs:[{t:'09:02',x:'12345 群众上报，生成黄色告警',hot:false}]},
+    {id:'AL-20261107-0021', short:'栖儒村', town:'金湖街道', place:'栖儒村北侧农田烟点', coord:[468,206],
+     level:'yellow', src:'高点视频-05', time:'08:47', wait:'00:19', history:0,
+     sensitive:'农田 · 距林地 1.6 km · 无居民点', weather:'东北风 2.0 级 · 湿度 53%',
+     dup:0, ai:'低风险农事用火特征，建议比对已报备农事用火台账后归档。', status:'pending',
+     logs:[{t:'08:47',x:'高点视频-05 识别农田烟点，生成黄色告警',hot:false}]},
   ];
   const orders = [
     {id:'WO-20261107-0012', short:'南山村', town:'殷祖镇', place:'南山村东南林缘', coord:[742,352],
@@ -1203,6 +1251,42 @@
      src:'AL-20261106-0022', level:'yellow', state:3, unit:'茗山乡值班室', handler:'村级应急队',
      sla:'剩余 6 小时', slaPct:40, over:false, time:'06:58', logs:[
        {t:'08:52',x:'乡镇提交现场核查材料，待市级核查'},{t:'07:10',x:'现场处置完成，申请办结'}]}
+  ];
+  /* ===== 第 7 轮：黄色预警 AI 自动研判台账（派发 / 归档两类结果，全过程可追溯） ===== */
+  const AI_RUNS = [
+    {id:'AIR-20261107-0018', alertId:'AL-20261107-0018', level:'yellow', short:'沼山村', town:'保安镇',
+     place:'沼山村野外用火点', src:'群众上报 12345', coord:[352,306],
+     trigger:'黄色预警自动触发（不生成人工研判待办）',
+     at:'09:02:41', done:'09:03:02', cost:'21 秒', conf:'0.91（高）',
+     concl:'dispatch', conclText:'需派发工单 · 工单·黄色',
+     order:{id:'WO-20261107-0020', unit:'保安镇值班室', handler:'镇应急办 值班员 周敏',
+            limit:'1 小时到场 / 4 小时控制', sla:'剩余 3 小时 58 分', slaPct:6, time:'09:03'},
+     steps:[
+       ['09:02:41','接收黄色预警并自动进入 AI 研判队列；黄色预警按规则不生成人工研判待办'],
+       ['09:02:44','多源核验：12345 文本要素抽取 + 周边 2 台高点视频 10 分钟回看 + 气象与火险等级拉取'],
+       ['09:02:48','目标识别：农田边缘露天焚烧（农事用火特征），明火面积约 3 ㎡，距林地 900 m'],
+       ['09:02:54','风险推理：蔓延至林地概率 0.18；影响对象为农田，周边无居民点与输电线路'],
+       ['09:02:58','结论生成：属需处置但风险可控 → 生成工单·黄色，派发属地乡镇值班室'],
+       ['09:03:02','自动执行：生成 WO-20261107-0020 并派发保安镇值班室；短信 + 站内消息同步通知应急指挥室（仅知会）']
+     ],
+     notify:[
+       {ch:'短信',to:'市应急指挥中心值班手机 138****6621',at:'09:03:03',st:'已送达'},
+       {ch:'站内消息',to:'应急指挥室工作台 · 消息中心（含工单卡片）',at:'09:03:03',st:'已读'}
+     ]},
+    {id:'AIR-20261107-0021', alertId:'AL-20261107-0021', level:'yellow', short:'栖儒村', town:'金湖街道',
+     place:'栖儒村北侧农田烟点', src:'高点视频-05', coord:[468,206],
+     trigger:'黄色预警自动触发（不生成人工研判待办）',
+     at:'08:47:12', done:'08:47:31', cost:'19 秒', conf:'0.96（高）',
+     concl:'archive', conclText:'无需处理 · 系统自动归档',
+     order:null,
+     steps:[
+       ['08:47:12','接收黄色预警并自动进入 AI 研判队列'],
+       ['08:47:16','画面核验：烟雾来自秸秆还田作业，现场有村组看护人员，无明火蔓延迹象'],
+       ['08:47:22','比对已报备农事用火台账：栖儒村 11-07 08:00–10:00 秸秆还田（编号 NY-1107-03）'],
+       ['08:47:27','风险推理：距林地 1.6 km，风力 2.0 级，蔓延概率 0.03，无敏感目标'],
+       ['08:47:31','结论生成：无需处理 → 系统直接归档，不计入工单；全过程留痕备查']
+     ],
+     notify:[]}
   ];
   const resources = [
     {id:'R1',nm:'防火物资库 · 金湖',type:'物资库',coord:[452,210],qty:'312 件',dist:'2.1 km',ic:'▣',c:'#f5a22e'},
@@ -1250,6 +1334,13 @@
   $('#cfCancel').onclick = $('#cfX').onclick = ()=>{ $('#confirmMask').classList.remove('show'); cfCb=null; };
   $('#confirmMask').onclick = e=>{ if(e.target.id==='confirmMask'){$('#confirmMask').classList.remove('show');cfCb=null;} };
   $('#calOpen').onclick = ()=>$('#calMask').classList.add('show');
+  $('#aiOpen').onclick = ()=>{renderAiLog();$('#aiMask').classList.add('show');};
+  $('#aiOk').onclick = $('#aiX').onclick = ()=>$('#aiMask').classList.remove('show');
+  $('#aiMask').onclick = e=>{ if(e.target.id==='aiMask')$('#aiMask').classList.remove('show'); };
+  $('#aiBody').addEventListener('click',e=>{
+    const a=e.target.closest('[data-ai]'); if(a){openDrawer('alert',a.dataset.ai);$('#aiMask').classList.remove('show');return;}
+    const o=e.target.closest('[data-ai-order]'); if(o){openDrawer('order',o.dataset.aiOrder);$('#aiMask').classList.remove('show');}
+  });
   $('#calOk').onclick = $('#calX').onclick = ()=>$('#calMask').classList.remove('show');
   $('#calMask').onclick = e=>{ if(e.target.id==='calMask')$('#calMask').classList.remove('show'); };
 
@@ -1493,6 +1584,111 @@
     </div></div>`;
   }
 
+  /* ================= 第 7 轮：黄色预警 AI 自动研判（免人工；橙 / 红仅给建议） ================= */
+  const AI_MODEL = '森防火情研判模型 v2.3';
+  function aiRunById(id){return AI_RUNS.find(r=>r.id===id);}
+  function aiRunOfAlert(a){return a&&a.aiRun?aiRunById(a.aiRun):null;}
+  function aiStepsHtml(r){
+    return `<div class="ai-sub" style="margin:8px 0 2px;font-weight:600;color:#5d4891">研判过程（${r.steps.length} 步 · 每一步均写入留痕）</div>`
+      + r.steps.map(s=>`<div class="ai-step"><span class="tm">${s[0]}</span>${s[1]}</div>`).join('');
+  }
+  function aiNotifyHtml(list){
+    if(!list||!list.length)return '';
+    return `<div class="ai-sub" style="margin:8px 0 2px;font-weight:600;color:#5d4891">同步通知应急指挥室（仅知会，不需处理）</div>`
+      + list.map(n=>`<div class="nt-row"><span class="ch">${n.ch}</span><span class="to">${n.to}</span><span class="st">${n.st} · ${n.at}</span></div>`).join('');
+  }
+  /* 黄色预警详情页：AI 研判结论（不提供任何人工研判按钮） */
+  function aiJudgeBlock(a){
+    const r=aiRunOfAlert(a);
+    if(!r){
+      return `<div class="dw-sec"><div class="sh">③ AI 自动研判 <span class="tag">黄色预警 · 无需人工</span></div><div class="sb">
+        <div class="ai-concl"><b>AI 研判排队中</b><span class="arch">等待结论</span></div>
+        <div class="ai-sub">黄色预警不进入人工研判待办；结论生成后由系统自动执行（派发或归档），全过程留痕。</div>
+        <div class="rule-note">本页不提供人工研判 / 判定误报 / 转乡镇核查按钮。</div>
+      </div></div>`;
+    }
+    const isD=r.concl==='dispatch';
+    return `<div class="dw-sec"><div class="sh">③ AI 自动研判结论 <span class="tag">黄色预警 · 全程无人工</span></div><div class="sb">
+      <div class="ai-concl"><b>${r.conclText}</b><span class="${isD?'ok':'arch'}">置信度 ${r.conf}</span></div>
+      <div class="kv">
+        <div class="k">研判单号</div><div class="v blu">${r.id}</div>
+        <div class="k">研判模型</div><div class="v">${AI_MODEL}</div>
+        <div class="k">触发方式</div><div class="v">${r.trigger}</div>
+        <div class="k">用时</div><div class="v">${r.cost} · ${r.at} → ${r.done}</div>
+      </div>
+      ${aiStepsHtml(r)}
+      ${isD
+        ? `<div class="rule-note blue">自动执行：已生成 ${r.order.id} 并派发 ${r.order.unit}（处置人 ${r.order.handler}），工单进入「待签收」；已短信 + 站内消息通知应急指挥室，仅知会、不需处理。<br><span class="lnk" style="color:#1266ad;cursor:pointer" data-act="openOrder" data-oid="${r.order.id}">查看关联工单 ${r.order.id} ▸</span></div>`
+        : `<div class="rule-note blue">自动执行：系统已直接归档，不计入工单；告警与 AI 研判全过程保留在「AI 研判日志」，可按编号追溯。</div>`}
+      <div class="ai-sub" style="margin-top:8px">本页不提供人工研判 / 判定误报 / 转乡镇核查按钮：黄色预警由 AI 自动完成研判并执行，人工不参与。</div>
+    </div></div>`;
+  }
+  /* 工单抽屉：AI 自动研判记录（仅 AI 生成的工单） */
+  function aiOrderBlock(o){
+    const r=o.aiRun?aiRunById(o.aiRun):null; if(!r)return '';
+    return `<div class="dw-sec"><div class="sh">🤖 AI 自动研判记录 <span class="tag">黄色预警 · 全程无人工 · 可追溯</span></div><div class="sb">
+      <div class="ai-concl"><b>${r.conclText}</b><span class="ok">置信度 ${r.conf}</span></div>
+      <div class="kv">
+        <div class="k">研判单号</div><div class="v blu">${r.id}</div>
+        <div class="k">研判模型</div><div class="v">${AI_MODEL}</div>
+        <div class="k">触发方式</div><div class="v">${r.trigger}</div>
+        <div class="k">用时</div><div class="v">${r.cost} · ${r.at} → ${r.done}</div>
+        <div class="k">自动派发</div><div class="v">${r.order.id} → ${r.order.unit}（处置人 ${r.order.handler}）</div>
+      </div>
+      ${aiStepsHtml(r)}
+      ${aiNotifyHtml(o.notify)}
+      <div class="rule-note">黄色预警由 AI 自动研判并自动派发，应急指挥室仅接收知会、不复核不介入；乡镇值班室按工单流程签收处置，误报确认权仍归乡镇。</div>
+    </div></div>`;
+  }
+  /* 页头 AI 研判日志：派发 / 归档两类结果均可追溯，并可反查源告警与工单 */
+  function renderAiLog(){
+    $('#aiBody').innerHTML = AI_RUNS.map(r=>{
+      const isD=r.concl==='dispatch';
+      return `<div class="ai-card">
+        <div class="ah">🤖 ${r.id}<span class="lvtag">${badge(r.level)} · ${r.town}${r.place} · 触发 ${r.at}</span></div>
+        <div class="ab">
+          <div class="kv">
+            <div class="k">源告警</div><div class="v blu">${r.alertId}（${r.src}）</div>
+            <div class="k">研判模型</div><div class="v">${AI_MODEL}</div>
+            <div class="k">触发方式</div><div class="v">${r.trigger}</div>
+            <div class="k">用时</div><div class="v">${r.cost} · ${r.at} → ${r.done}</div>
+            <div class="k">研判结论</div><div class="v">${r.conclText}（置信度 ${r.conf}）</div>
+            <div class="k">自动执行</div><div class="v">${isD?`生成 ${r.order.id} → 派发 ${r.order.unit} → 工单「待签收」`:'系统直接归档，不计入工单'}</div>
+          </div>
+          ${aiStepsHtml(r)}
+          ${aiNotifyHtml(r.notify)}
+          <div class="ai-sub" style="margin-top:8px"><span class="lnk" style="color:#1266ad;cursor:pointer" data-ai="${r.alertId}">查看源告警详情 ▸</span>${isD?`<span class="lnk" style="color:#1266ad;cursor:pointer;margin-left:14px" data-ai-order="${r.order.id}">查看工单 ${r.order.id} ▸</span>`:''}</div>
+        </div>
+      </div>`;
+    }).join('') + `<div class="warnbox">黄色预警：AI 自动研判 + 自动执行（派发或归档），全过程留痕；橙色 / 红色预警仍为「AI 给建议 + 人工研判确认」，不在此自动执行。本日志为原型示意，真实环境需接入模型服务与研判结果表。</div>`;
+  }
+  /* 初始化执行：黄色预警按 AI 结论自动派发 / 自动归档，不进入人工待办 */
+  function applyAiRuns(){
+    AI_RUNS.forEach(r=>{
+      if(r.executed)return;
+      const a=alerts.find(x=>x.id===r.alertId);
+      if(a){
+        a.status='auto'; a.aiRun=r.id;
+        a.logs = r.steps.map(x=>({t:x[0],x:'🤖 '+x[1],ai:true})).reverse().concat(a.logs.filter(l=>!l.ai));
+      }
+      if(r.concl==='dispatch'&&r.order){
+        const o={
+          id:r.order.id, short:r.short, town:r.town, place:r.place, coord:(a?a.coord:r.coord).slice(),
+          src:r.alertId, level:r.level, state:0, unit:r.order.unit, handler:r.order.handler,
+          sla:r.order.sla, slaPct:r.order.slaPct, over:false, time:r.order.time,
+          aiRun:r.id, ai:true, notify:r.notify.slice(), logs:[]
+        };
+        r.steps.forEach(x=>o.logs.push({t:x[0],x:'🤖 '+x[1]}));
+        o.logs.push({t:r.order.time,x:`AI 自动派发：工单派发至 ${r.order.unit}（处置人 ${r.order.handler}），时限 ${r.order.limit}`,hot:true});
+        r.notify.forEach(n=>o.logs.push({t:n.at.slice(0,5),x:`同步通知应急指挥室 · ${n.ch}：${n.to}（${n.st}）`}));
+        o.logs.reverse();
+        orders.unshift(o);
+        r.orderId=o.id;
+      }
+      r.executed=true;
+    });
+  }
+
   /* ---------- 研判处理 ---------- */
   function renderJudge(a){
     $('#dwKicker').textContent='研判处理 · ONE MAP';
@@ -1510,23 +1706,24 @@
           <div class="k">入库时间</div><div class="v">2026-11-07 ${a.time}</div>
           <div class="k">关联告警</div><div class="v">同坐标 500m / 10 分钟内 ${a.dup} 条，已自动合并</div>
         </div></div></div>
-      <div class="dw-sec"><div class="sh">② 研判依据包 <span class="tag">AI 辅助 + 人工确认</span></div><div class="sb">
-        <div class="ai-box"><b>AI 辅助建议（后台推理，人工最终确认）：</b>${a.ai}<br>本地算力不足时可回退为纯人工研判，业务流不中断。</div>
+      <div class="dw-sec"><div class="sh">② 研判依据包 <span class="tag">${a.level==='yellow'?'AI 自动研判（黄色免人工）':'AI 建议 + 人工研判'}</span></div><div class="sb">
+        <div class="ai-box"><b>${a.level==='yellow'?'AI 自动研判（已自动执行，人工不参与）：':'AI 研判建议（仅建议，不自动执行；橙色 / 红色预警须人工研判确认）：'}</b>${a.ai}<br>${a.level==='yellow'?'黄色预警由 AI 全自动完成研判并执行，完整过程与结论见下方 ③ 与「AI 研判日志」。':'本地算力不足时可回退为纯人工研判，业务流不中断。'}</div>
         <div class="evi">
           <div class="e"><b>历史同点位</b>近 30 日 ${a.history} 次同类告警，已办结 ${a.history} 次</div>
           <div class="e"><b>周边敏感目标</b>${a.sensitive}</div>
           <div class="e"><b>气象与地形</b>${a.weather}</div>
           <div class="e"><b>实时画面</b>高点视频-03 / 无人机 D-02 可回看（示意）</div>
         </div></div></div>
-      <div class="dw-sec"><div class="sh">③ 研判结论 <span class="tag">人工确认后生效</span></div><div class="sb">
-        <div class="field"><label>确认属实 · 定级（工单·黄/橙/红）</label><div class="lv-btns" id="lvRow">${lvOpts}</div></div>
+      ${a.level==='yellow'?aiJudgeBlock(a):`
+      <div class="dw-sec"><div class="sh">③ 研判结论 <span class="tag">人工研判后生效</span></div><div class="sb">
+        <div class="field"><label>人工研判 · 定级（工单·黄/橙/红）</label><div class="lv-btns" id="lvRow">${lvOpts}</div></div>
         <div class="btn-row">
           <div class="btn primary ${btnDisabled()}" data-act="confirm">✔ 确认属实 · 生成工单</div>
           <div class="btn warn" data-act="falseAlarm">✘ 判定误报 · 归档</div>
           <div class="btn ghost ${btnDisabled()}" data-act="toCheck">↗ 转乡镇核查</div>
         </div>
-        <div class="rule-note">预警研判阶段的「判定误报 · 归档」由当前角色行使；黄色工单生成后的误报确认权按业务授权下放乡镇值班室，指挥中心不介入处置；授权范围待应急管理部门最终确认。</div>
-      </div></div>
+        <div class="rule-note">橙色 / 红色预警：AI 仅给出研判建议，须人工研判确认后生效；黄色预警由 AI 自动研判并自动执行，本页不设人工研判入口。黄色工单生成后的误报确认权仍归乡镇值班室。</div>
+      </div></div>`}
       ${resBlock(a)}
       ${logBlock(a)}`;
     renderFlow(1);
@@ -1559,7 +1756,8 @@
         <div class="kv">
           <div class="k">工单编号</div><div class="v blu">${o.id} ${badge(o.level)}</div>
           <div class="k">当前状态</div><div class="v ${o.over?'red':o.archived?'grn':'org'}">${o.archived?'已归档':STATES[o.state]}${o.over?' · 超时':''}</div>
-          <div class="k">源告警</div><div class="v">${o.src}</div>
+          <div class="k">源告警</div><div class="v"><span class="lnk" style="color:#1266ad;cursor:pointer;text-decoration:underline dotted" data-act="srcAlert" title="查看源告警的 AI 研判详情">${o.src} ▸</span></div>
+          <div class="k">生成方式</div><div class="v">${o.ai?'AI 自动研判 · 黄色预警免人工':'人工研判确认'}</div>
           <div class="k">责任单位</div><div class="v">${o.unit}</div>
           <div class="k">处置人</div><div class="v">${o.handler}</div>
           <div class="k">处置时限</div><div class="v ${o.over?'red':''}">${o.sla}</div>
@@ -1576,6 +1774,7 @@
           :acts.length?`<div class="btn-row${acts.length>=4?' four':''}">${acts.map(b=>`<div class="btn ${b.c} ${btnDisabled(b.a==='yellowFalse'&&role!=='town')}" data-act="${b.a}">${b.t}</div>`).join('')}</div>`
           :'<div class="rule-note blue">当前角色在该状态下无可执行的处置动作，等待后续环节继续流转。</div>'}
       </div></div>
+      ${aiOrderBlock(o)}
       ${resBlock(o)}
       ${logBlock(o)}`;
     renderFlow(step);
@@ -1836,6 +2035,8 @@
     if(act==='dispatch'){ openDispatch(o);return; }
     if(act==='fixTime'){ openFixTime(o);return; }
     if(act==='addHelp'){ openAddHelp(o);return; }
+    if(act==='srcAlert'&&o.src){ openDrawer('alert',o.src);return; }
+    if(act==='openOrder'&&b.dataset.oid){ openDrawer('order',b.dataset.oid);return; }
     if(act==='allocate'){
       const r=resources.find(x=>x.id===b.dataset.rid);
       askConfirm('申请调拨 · '+r.nm,`<p>将向 <b>${r.nm}</b>（${r.qty}，距离 ${r.dist}）发起调拨申请。</p><div class="warnbox">调拨记录将同步写入本对象流转留痕，并汇总至「应急资源 → 物资调用过程记录」。</div>`,()=>{
@@ -2506,6 +2707,7 @@
   renderDataMap(); setDataMode('alert'); setDataTable('town');
 
   /* ================= 初始化 ================= */
+  applyAiRuns();
   roleBar(); renderMap(); renderLists(); renderFlow(0); renderDrawer();
 })();
 </script>
