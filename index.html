@@ -68,7 +68,7 @@
         弹窗按业务系统形态呈现工单信息、调度时限规则与附近资源分组清单（无人机 / 摄像头 /
         物资装备 / 灭火队伍 / 护林人员 / 联系人），投放与通知类操作为原型示意。
      ② 「待签收」「处置中」两态在指挥长、乡镇值班室两角色下均新增「更正发生时间」
-        与「增加协助人员」两个处置动作，各自带独立表单弹窗，提交结果写入工单信息与流转留痕；
+        与「增加协助人员」两个处置动作，各自带独立表单弹窗，提交结果写入工单信息与工单日志；
         其余状态动作、角色权限与状态流转不变。
      ③ 去除工单抽屉内关于原型态数与原系统态数对比的说明文字，流程条提示与口径说明同步精简。
 
@@ -80,7 +80,7 @@
         黄色预警详情页不再提供人工研判 / 判定误报 / 转乡镇核查按钮。
      ② 橙色 / 红色预警：沿用现有流程，AI 只给研判建议，由人工研判确认后生效。
      ③ 可追溯：AI 研判的模型、触发方式、耗时、置信度、分步过程、结论与自动执行结果，
-        同时写入工单「流转留痕」与「AI 自动研判记录」区块，并汇总到页头「🤖 AI 研判日志」
+        同时写入工单页「工单日志」与「AI 自动研判记录」区块，并汇总到页头「🤖 AI 研判日志」
         （含派发与归档两类结果），支持从日志反查源告警详情。
      ④ 实现范围：原型层规则与呈现，模型推理过程为示意；数据接入、模型服务与研判结果表不在本版范围。
 -->
@@ -1546,10 +1546,10 @@
   function resBlock(o){
     return `<div class="dw-sec"><div class="sh">🛠 周边应急资源联动 <span class="sh-btn" data-act="dispatch">调度</span></div><div class="sb">`+
       nearestRes(o.coord).map(r=>`<div class="res-item"><span class="ic">${r.ic}</span><span class="nm">${r.nm}</span><span class="ds">${r.qty} · ${r.dist}</span><span class="lnk" data-act="allocate" data-rid="${r.id}">申请调拨</span></div>`).join('')+
-      `<div class="rule-note blue">调拨动作写回本对象流转留痕，并在「应急资源 → 物资调用过程记录」中同步呈现，无需离开首图。</div></div></div>`;
+      `<div class="rule-note blue">调拨动作写回本对象工单日志，并在「应急资源 → 物资调用过程记录」中同步呈现，无需离开首图。</div></div></div>`;
   }
   function logBlock(o){
-    return `<div class="dw-sec"><div class="sh">🕒 流转留痕 <span class="tag">${o.logs.length} 条 · 全程可追溯</span></div><div class="sb"><div class="tl">`+
+    return `<div class="dw-sec"><div class="sh">🕒 工单日志 <span class="tag">${o.logs.length} 条 · 全程可追溯</span></div><div class="sb"><div class="tl">`+
       (o.logs.length?o.logs.map(l=>`<div class="tl-row ${l.hot?'hot':''}"><span class="tm">${l.t}</span>${l.x}</div>`).join(''):'<div class="tl-row">暂无记录</div>')+
       `</div></div></div>`;
   }
@@ -1568,7 +1568,7 @@
       + `</select></div>`;
   }
   function cfNoteField(){
-    return `<div class="field"><label>研判备注（写入留痕）</label><textarea id="cfJudgeNote" placeholder="补充现场判断依据、处置要求…"></textarea></div>`;
+    return `<div class="field"><label>研判备注（写入工单日志）</label><textarea id="cfJudgeNote" placeholder="补充现场判断依据、处置要求…"></textarea></div>`;
   }
   function cfNote(){
     const el=$('#cfJudgeNote'); return el&&el.value.trim()?('；备注：'+el.value.trim()):'';
@@ -1576,7 +1576,7 @@
   /* 第 5 轮：派发配置整体移入「确认属实并生成工单」弹窗（不再出现在工单抽屉） */
   function dispatchFields(o){
     const unit=o.unit||o.town+'值班室';
-    return `<div class="dw-sec"><div class="sh">📤 派发配置 <span class="tag">确认后写入工单与留痕</span></div><div class="sb">
+    return `<div class="dw-sec"><div class="sh">📤 派发配置 <span class="tag">确认后写入工单与日志</span></div><div class="sb">
       <div class="field"><label>责任单位</label><select id="dUnit"><option>${unit}</option><option>市消防救援大队</option><option>大箕铺镇值班室</option><option>殷祖镇值班室</option></select></div>
       <div class="field"><label>处置人（可操作）</label><select id="dHandler"><option>护林员 张三</option><option>镇应急办 李四</option><option>网格员 王五</option></select></div>
       <div class="field"><label>处置时限</label><select id="dLimit"><option>30 分钟到场 / 2 小时控制</option><option>1 小时到场 / 4 小时控制</option><option>24 小时内核查反馈</option></select></div>
@@ -1589,7 +1589,7 @@
   function aiRunById(id){return AI_RUNS.find(r=>r.id===id);}
   function aiRunOfAlert(a){return a&&a.aiRun?aiRunById(a.aiRun):null;}
   function aiStepsHtml(r){
-    return `<div class="ai-sub" style="margin:8px 0 2px;font-weight:600;color:#5d4891">研判过程（${r.steps.length} 步 · 每一步均写入留痕）</div>`
+    return `<div class="ai-sub" style="margin:8px 0 2px;font-weight:600;color:#5d4891">研判过程（${r.steps.length} 步 · 每一步均写入工单日志）</div>`
       + r.steps.map(s=>`<div class="ai-step"><span class="tm">${s[0]}</span>${s[1]}</div>`).join('');
   }
   function aiNotifyHtml(list){
@@ -1770,7 +1770,7 @@
       </div></div>
       ${o.level==='yellow'?'<div class="rule-note">黄色工单规则：误报确认权下放乡镇值班室，乡镇自处、自行负责；指挥中心不复核、不介入。该流程属业务授权问题，待应急管理部门确认。</div>':''}
       <div class="dw-sec"><div class="sh">② 处置动作 <span class="tag">按当前状态与角色可用</span></div><div class="sb">
-        ${o.archived?'<div class="rule-note blue">该工单已归档，一张图闭环完成；处置过程见下方流转留痕。</div>'
+        ${o.archived?'<div class="rule-note blue">该工单已归档，一张图闭环完成；处置过程见下方工单日志。</div>'
           :acts.length?`<div class="btn-row${acts.length>=4?' four':''}">${acts.map(b=>`<div class="btn ${b.c} ${btnDisabled(b.a==='yellowFalse'&&role!=='town')}" data-act="${b.a}">${b.t}</div>`).join('')}</div>`
           :'<div class="rule-note blue">当前角色在该状态下无可执行的处置动作，等待后续环节继续流转。</div>'}
       </div></div>
@@ -1975,7 +1975,7 @@
     const o=curObj();
     if(o)log(o,`提交工单调度指令：附近资源联动 ${resources.length} 项、通知 ${o.town||''}值班室`,true);
     $('#dspMask').classList.remove('show');
-    renderDrawer(); toast('调度指令已提交 · 已写入流转留痕');
+    renderDrawer(); toast('调度指令已提交 · 已写入工单日志');
   };
 
   /* ================= 第 6 轮：更正发生时间 / 增加协助人员 表单弹窗 ================= */
@@ -1996,7 +1996,7 @@
         const fmt=t.replace('T',' ').replace(/-/g,'/');
         o.occur=fmt;
         log(o,`更正发生时间：${fmt}（原因：${r}）；入库统计与责任时限不变`,true);
-        renderDrawer(); toast('发生时间已更正 · 已写入流转留痕');
+        renderDrawer(); toast('发生时间已更正 · 已写入工单日志');
       },'确认提交',520,'关闭');
     $('#cfRefresh').onclick = ()=>{ const el=$('#cfNewTime'); if(el){el.value='2026-11-05T10:27:32';toast('已载入原发生时间，可在此基础上修改');} };
     $('#cfFixReason').oninput = e=>{ $('#cfFixCount').textContent = e.target.value.length; };
@@ -2018,7 +2018,7 @@
         const p=$('#cfHelpPerson')?$('#cfHelpPerson').value:'';
         o.helps=o.helps||[]; o.helps.push({dept:d,person:p});
         log(o,`增加协助人员：${d} / ${p}（主责任不变，协助任务独立签收与办理）`,true);
-        renderDrawer(); toast('协助人员已追加 · 已写入流转留痕');
+        renderDrawer(); toast('协助人员已追加 · 已写入工单日志');
       },'确认提交',520,'关闭');
   }
 
@@ -2039,8 +2039,8 @@
     if(act==='openOrder'&&b.dataset.oid){ openDrawer('order',b.dataset.oid);return; }
     if(act==='allocate'){
       const r=resources.find(x=>x.id===b.dataset.rid);
-      askConfirm('申请调拨 · '+r.nm,`<p>将向 <b>${r.nm}</b>（${r.qty}，距离 ${r.dist}）发起调拨申请。</p><div class="warnbox">调拨记录将同步写入本对象流转留痕，并汇总至「应急资源 → 物资调用过程记录」。</div>`,()=>{
-        log(o,`申请调拨 ${r.nm}（${r.qty}），等待物资库签收`,true);renderDrawer();toast('调拨申请已提交 · 已写入流转留痕','warn');
+      askConfirm('申请调拨 · '+r.nm,`<p>将向 <b>${r.nm}</b>（${r.qty}，距离 ${r.dist}）发起调拨申请。</p><div class="warnbox">调拨记录将同步写入本对象工单日志，并汇总至「应急资源 → 物资调用过程记录」。</div>`,()=>{
+        log(o,`申请调拨 ${r.nm}（${r.qty}），等待物资库签收`,true);renderDrawer();toast('调拨申请已提交 · 已写入工单日志','warn');
       });return;
     }
     if(act==='confirm'){
@@ -2074,7 +2074,7 @@
     if(act==='falseAlarm'){
       askConfirm('判定误报 · 归档',`<p>告警 <b>${o.id}</b> 判定为误报，归档后不计入工单，该点位将从首图移除。</p>`
         + cfReasonField() + cfNoteField()
-        + `<div class="warnbox">误报原因与研判备注将一并写入流转留痕；黄色工单生成后的误报确认权仍按业务授权归属乡镇值班室。</div>`,()=>{
+        + `<div class="warnbox">误报原因与研判备注将一并写入工单日志；黄色工单生成后的误报确认权仍按业务授权归属乡镇值班室。</div>`,()=>{
         const rEl=$('#cfFalseReason'); const reason=rEl?rEl.value:ui.falseReason; ui.falseReason=reason;
         log(o,`判定误报归档（${reason}）${cfNote()}`);
         const idx=alerts.findIndex(a=>a.id===o.id); if(idx>-1)alerts.splice(idx,1);
@@ -2101,7 +2101,7 @@
     };
     if(simple[act]){
       const [title,desc,next]=simple[act];
-      askConfirm(title+' · '+o.id,`<p>${desc}。</p><div class="warnbox">操作将写入流转留痕，并同步更新地图点位状态；全程不切换页面。</div>`,()=>{
+      askConfirm(title+' · '+o.id,`<p>${desc}。</p><div class="warnbox">操作将写入工单日志，并同步更新地图点位状态；全程不切换页面。</div>`,()=>{
         o.state=next(o.state);
         if(act==='archive'||act==='yellowFalse')o.archived=true;
         log(o,desc,true);renderMap();renderLists();renderDrawer();toast(title+' 已生效 · 地图点位状态已同步');
